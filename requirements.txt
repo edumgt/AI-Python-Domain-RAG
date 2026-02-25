@@ -1,0 +1,13 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+pydantic==2.11.7
+pydantic-settings==2.10.1
+sqlalchemy==2.0.43
+psycopg2-binary==2.9.10
+redis==6.4.0
+qdrant-client==1.15.1
+numpy==2.3.2
+python-multipart==0.0.20
+sentence-transformers==5.1.0
+pypdf==5.9.0
+httpx==0.28.1
