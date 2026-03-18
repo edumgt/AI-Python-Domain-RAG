@@ -14,14 +14,22 @@ rag_service = RAGService()
 def chat(payload: ChatRequest, db: Session = Depends(get_db)):
     answer, chunks = rag_service.ask(
         question=payload.question,
+        domain=payload.domain.value,
         top_k=payload.top_k,
     )
 
-    log = ChatLog(question=payload.question, answer=answer)
+    log = ChatLog(
+        question=payload.question,
+        answer=answer,
+        domain=payload.domain.value,
+        session_id=payload.session_id,
+    )
     db.add(log)
     db.commit()
 
     return ChatResponse(
         answer=answer,
         references=[RetrievedChunk(**chunk) for chunk in chunks],
+        domain=payload.domain.value,
+        session_id=payload.session_id,
     )

@@ -17,7 +17,7 @@ class RAGService:
         self.vector_store = VectorStore()
         self.llm = LLMService()
 
-    def ingest_text(self, document_id: str, title: str, content: str):
+    def ingest_text(self, document_id: str, title: str, content: str, domain: str = "general"):
         chunks = self.chunker.split_text(content)
         if not chunks:
             return 0
@@ -31,6 +31,7 @@ class RAGService:
                     "title": title,
                     "content": chunk,
                     "chunk_index": idx,
+                    "domain": domain,
                 }
             )
 
@@ -38,16 +39,17 @@ class RAGService:
         self.vector_store.upsert_chunks(chunk_docs, vectors)
         return len(chunk_docs)
 
-    def ingest_file(self, saved_path: str, original_filename: str):
+    def ingest_file(self, saved_path: str, original_filename: str, domain: str = "general"):
         text = self.parser.parse_file(saved_path)
         document_id = str(uuid.uuid4())
         title = original_filename
-        count = self.ingest_text(document_id=document_id, title=title, content=text)
+        count = self.ingest_text(document_id=document_id, title=title, content=text, domain=domain)
         return {
             "document_id": document_id,
             "title": title,
             "chunks": count,
             "text_length": len(text),
+            "domain": domain,
         }
 
     def save_upload_file(self, filename: str, file_bytes: bytes) -> str:
@@ -60,10 +62,14 @@ class RAGService:
 
         return save_path
 
-    def ask(self, question: str, top_k: int | None = None):
+    def ask(self, question: str, domain: str = "general", top_k: int | None = None):
         final_top_k = top_k or settings.top_k
         query_vector = self.embedder.embed_query(question)
-        results = self.vector_store.search(query_vector=query_vector, top_k=final_top_k)
+        results = self.vector_store.search(
+            query_vector=query_vector,
+            top_k=final_top_k,
+            domain=domain if domain != "general" else None,
+        )
 
         chunks = []
         for item in results:
@@ -74,8 +80,9 @@ class RAGService:
                     "title": item.payload.get("title", ""),
                     "content": item.payload.get("content", ""),
                     "score": float(item.score),
+                    "domain": item.payload.get("domain", "general"),
                 }
             )
 
-        answer = self.llm.generate_answer(question, chunks)
+        answer = self.llm.generate_answer(question, chunks, domain=domain)
         return answer, chunks

@@ -1,10 +1,19 @@
-from typing import List
+from typing import List, Optional
+from enum import Enum
 from pydantic import BaseModel
+
+
+class DomainType(str, Enum):
+    medical = "medical"
+    english = "english"
+    general = "general"
 
 
 class ChatRequest(BaseModel):
     question: str
+    domain: DomainType = DomainType.general
     top_k: int | None = None
+    session_id: Optional[str] = None
 
 
 class RetrievedChunk(BaseModel):
@@ -13,8 +22,11 @@ class RetrievedChunk(BaseModel):
     title: str
     content: str
     score: float
+    domain: str = "general"
 
 
 class ChatResponse(BaseModel):
     answer: str
     references: List[RetrievedChunk]
+    domain: str = "general"
+    session_id: Optional[str] = None
