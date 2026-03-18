@@ -1,7 +1,7 @@
 import uuid
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
+from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
 
 from app.core.config import settings
 
@@ -32,14 +32,27 @@ class VectorStore:
                 "title": chunk["title"],
                 "content": chunk["content"],
                 "chunk_index": chunk["chunk_index"],
+                "domain": chunk.get("domain", "general"),
             }
             points.append(PointStruct(id=point_id, vector=vector, payload=payload))
 
         self.client.upsert(collection_name=self.collection_name, points=points)
 
-    def search(self, query_vector: list[float], top_k: int = 4):
+    def search(self, query_vector: list[float], top_k: int = 4, domain: str | None = None):
+        query_filter = None
+        if domain and domain != "general":
+            query_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="domain",
+                        match=MatchValue(value=domain),
+                    )
+                ]
+            )
+
         return self.client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
             limit=top_k,
+            query_filter=query_filter,
         )
